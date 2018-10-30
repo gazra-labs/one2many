@@ -1,0 +1,58 @@
+{
+  "ticket_fields": {
+    "one2many_state":{
+      "type":                  "tagger",
+      "title":                 "One2Many Ticket State",
+      "raw_title":             "One2Many Ticket State",
+      "description":           "State of ticket in terms of Many-to-One OR One-to-Many",
+      "raw_description":       "State of ticket in terms of Many-to-One OR One-to-Many",
+      "position":              0,
+      "active":                true,
+      "required":              true,
+      "collapsed_for_agents":  true,
+      "regexp_for_validation": null,
+      "title_in_portal":       "One2Many Ticket State",
+      "raw_title_in_portal":   "One2Many Ticket State",
+      "visible_in_portal":     false,
+      "editable_in_portal":    false,
+      "required_in_portal":    false,
+      "removable":             false,
+      "agent_description":     "This is the agent only description for the subject field",
+      "custom_field_options": [
+        {
+          "name":"Many-to-One",
+          "raw_name":"Many-to-One",
+          "value":"one2many_state_1",
+          "default":false
+        },
+        {
+          "name":"One-to-Many",
+          "raw_name":"One-to-Many",
+          "value":"one2many_state_2",
+          "default":false
+        }
+      ]
+    },
+
+    "one2many_is_all_solved":{
+      "type":                   "checkbox",
+      "title":                  "Are all sub-tickets solved?",
+      "raw_title":              "Are all sub-tickets solved?",
+      "description":            "",
+      "raw_description":        "",
+      "position":               9999,
+      "active":                 true,
+      "required":               true,
+      "collapsed_for_agents":   false,
+      "regexp_for_validation":  null,
+      "title_in_portal":        "Are all sub-tickets solved?",
+      "raw_title_in_portal":    "Are all sub-tickets solved?",
+      "visible_in_portal":      false,
+      "editable_in_portal":     false,
+      "required_in_portal":     false,
+      "tag":                    "",
+      "removable":              false,
+      "agent_description":      ""
+    }
+  }
+}

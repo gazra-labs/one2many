@@ -1,0 +1,8 @@
+{
+  "app": {
+    "name": "One2Many",
+    "short_description": "To create sub-tickets if a ticket has more than one problem",
+    "long_description": "Play the famous zen tunes in your help desk and \n listen to the beats it has to offer.",
+    "installation_instructions": "Simply click install."
+  }
+}
