@@ -1,107 +1,140 @@
 var client = ZAFClient.init();
-var isSolved = { isSolved: true };
-client.on('app.registered', function appRegistered(e) {
-    init();
-});
+
+// client.on('app.registered', function appRegistered(e) {
+
+// });
+
+var startingPoint = StartInit();
 
 
-function init() {
-    var clientPromise = client.get('instances').then(function (instancesData) {
-        var instances = instancesData.instances;
-        for (var instanceGuid in instances) {
-            if (instances[instanceGuid].location === 'background') {
-                return client.instance(instanceGuid);
+function StartInit(){
+    new Vue({
+        el: '#one2many-app',
+        data: {
+            message: '',
+            isSolved: false,
+            global_setting:'',
+            tickets:[],
+            problemDetail:{},
+            requests:{
+                
             }
-        }
-        return false;
-    });
-
-    clientPromise.then(function (backgroundData) {
-        // trigger an incoming_call event on the top bar
-        client.get(['ticket.type', 'ticket.id', 'ticket.customField:problem_id']).then(function (data) {
-            if (data['ticket.type'] == 'problem') {
-                getIncidents(data['ticket.id']).then((response) => {
-                    console.log(response, 'test');
-                });
-            } else if (data['ticket.type'] == 'incident') {
-                getProblem(data['ticket.customField:problem_id']);
-            }
-        });
-    });
-
-    client.context().then(function (context) {
-        /** Ticket Sidebar */
-        if (context.location === 'ticket_sidebar') {
-            client.invoke('resize', { width: '100%', height: '300px' });
-            client.get(['ticket.type', 'ticket.id', 'ticket.customField:problem_id']).then(function (data) {
-                if (data['ticket.type'] == 'problem') {
-                    client.request({
-                        url: '/api/v2/tickets/' + data['ticket.id'] + '/incidents.json',
-                        type: 'GET',
-                        dataType: 'json'
-                    }).then((response) => {
-
-                        renderHTML('tktBar-template', response.tickets[0], "content");
-                    })
+        },
+        mounted(){
+            var instance = this;
+            instance.ticketType();
+            client.on('ticket.save', function() {
+                if (!instance.isSolved) {
+                    return 'All child tickets are not solved';
                 }
-            })
-            
-        }
-    })
-
-    client.on('ticket.save', function () {
-        return new Promise(function (resolve, reject) {
-            client.get(['ticket.type', 'ticket.id', 'ticket.customField:problem_id']).then(function (data) {
-                if (data['ticket.type'] == 'problem' && !isSolved.isSolved) {
-                    reject('Child tickets are not solved');
-                } else if (data['ticket.type'] == 'incident') {
-                    getProblem(data['ticket.customField:problem_id']);
-                    reject('Parent tickets are not saved');
-                }
-            })
-        })
-
-        return 'Child tickets are not saved';
-    });
-}
-
-function getIncidents(ticketId) {
-    return new Promise((resolve, reject) => {
-        client.request({
-            url: '/api/v2/tickets/' + ticketId + '/incidents.json',
-            type: 'GET',
-            dataType: 'json'
-        }).then((response) => {
-            response.tickets.forEach(element => {
-                if (element.status !== 'solved') {
-                    isSolved.isSolved = false;
-                }
+                return instance.isSolved;
             });
-            resolve(isSolved);
-        }).catch((err) => {
-            reject('Something went wrong.');
-        })
+        },
+        methods:{
+            ticketType: function(){
+                var instance = this;
+                client.get(['ticket.type', 'ticket.id', 'ticket.customField:problem_id']).then(function (data) {
+                    if (data['ticket.type'] == 'problem') {
+                        instance.listIncidents(data['ticket.id']);
+                    } else if (data['ticket.type'] == 'incident') {
+                        instance.getProblem(data['ticket.customField:problem_id']);
+                    }
+                });
+            },
+            listIncidents: function(ticketId){
+                var instance = this;
+                client.request({
+                    url: '/api/v2/tickets/' + ticketId + '/incidents.json',
+                    type: 'GET',
+                    dataType: 'json'
+                }).then((response) => {
+                    instance.tickets = response.tickets;
+                    var count = 0;
+                    response.tickets.forEach(element => {
+                        if (element.status === 'solved' || element.status === 'closed') {
+                            count++;
+                        }
+                    });
+
+                    if(count === instance.tickets.length){
+                        instance.isSolved = true;
+                    }
+                })
+            },
+            getProblem: function(ticketId){                
+                var instance = this;
+                client.request({
+                    url: '/api/v2/tickets/' + ticketId + '.json',
+                    type: 'GET',
+                    dataType: 'json'
+                }).then((response) => {
+                    instance.problemDetail = response.ticket;
+                })
+            },
+            updateAgent: function(agent_id,agent_name, agent_key){
+                var instance = this;
+                var default_tag = agent_name.replace(/[ |\"|&|\']/g,"_").toLowerCase() + '_tag';
+                console.log(agent_id,agent_name);
+                var update_array = {
+                    user_fields: {
+                        agent_activity_tag: default_tag
+                    }
+                }
+            
+                var updateAgents = {
+                    url: '/api/v2/users/'+agent_id+'.json',
+                    type: 'PUT',
+                    dataType: 'json',
+                    data: {user:update_array}
+                }
+            
+                //Updating single agent at a time because UpdateMany user API is producing error from Zendesk side.
+                //The request is in process with Zendesk team.
+            
+                client.request(updateAgents).then(function(data) {
+                    instance.agents[agent_key].user_fields.agent_activity_tag  =  data.user.user_fields.agent_activity_tag;
+                    console.log(data);
+                    client.invoke('notify', 'Default tag added '+agent_name, 'notice', 3000);
+                },function(err){
+                    //console.log(err);
+                    client.invoke('notify', 'Error: Tag not updated for '+agent_name, 'error', 3000);
+                });
+            },            
+            saveSetting:function(){
+                var instance = this;
+                var agentsToUpdate = [];
+                instance.agents.forEach((agent,key) => {
+                    var update_array = {
+                        email: instance.agents[key].email,
+                        user_fields: {
+                            agent_activity_setting: instance.agents[key].user_fields.agent_activity_setting,
+                            agent_activity_tag: instance.agents[key].user_fields.agent_activity_tag
+                        }
+                    }
+                    instance.requests.updateAgents.url = '/api/v2/users/'+instance.agents[key].id+'.json';
+                    instance.requests.updateAgents.data = {user:update_array};
+
+                    //Updating single agent at a time because UpdateMany user API is producing error from Zendesk side.
+                    //The request is in process with Zendesk team.
+
+                    client.request(instance.requests.updateAgents).then(function(data) {
+                        //console.log(data);
+                        client.invoke('notify', 'Setings updated for '+instance.agents[key].name, 'notice', 3000);
+                    },function(err){
+                        //console.log(err);
+                        client.invoke('notify', 'Error: Settings not updated for '+instance.agents[key].name, 'error', 3000);
+                    });
+                });
+            },
+            globalSettingManager:function(){
+                var instance = this;
+                instance.agents.forEach((agent,key) => {
+                    instance.agents[key].user_fields.agent_activity_setting = instance.global_setting;
+                });
+            },
+            routeToUser:function(id){
+                client.invoke('routeTo', 'ticket', id)
+            }
+        }
     })
-}
-
-function getProblem(ticketId) {
-    client.request({
-        url: '/api/v2/tickets/' + ticketId + '.json',
-        type: 'GET',
-        dataType: 'json'
-    }).then((response) => {
-        console.log(response, 'prob');
-    })
-}
-
-function addActions(ticketType) {
-    console.log(ticketType);
-
-}
-
-function renderHTML(id, data,renderId) {
-    var source = $("#" + id).html();
-    var template = Handlebars.compile(source);
-    var html = template(data);
-    $("#" + renderId).html(html);
 }
