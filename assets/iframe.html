@@ -1,17 +1,44 @@
 <html lang="en">
 <head>
-  <title>One to Many</title>
+  <title>One to many App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The following jsDelivr combine endpoint is used to load all of the Garden npm package
+       CSS required by the demo. Additional components may be added by updating the link URL.
+       See https://www.jsdelivr.com/features#combine for details. -->
   <link href="//cdn.jsdelivr.net/combine/npm/@zendeskgarden/css-bedrock,npm/@zendeskgarden/css-grid,npm/@zendeskgarden/css-buttons,npm/@zendeskgarden/css-forms,npm/@zendeskgarden/css-utilities" rel="stylesheet">
+
 </head>
 <body>
-  <div class="u-m u-fg-grey-800" id="one2many-app">
-    
 
+  <!-- Spacing utility classes are used throughout this file to provide margin and padding between elements.
+       See more examples at https://garden.zendesk.com/css-components/utilities/spacing/ -->
+  <div class="u-m u-fg-grey-800" id="one2many-app">
+    <div style="text-align: center;" v-if="tickets.length==0">
+      <img src="loading.gif" style="height: 50px; width: 50px;"/>
+    </div>
+    <div class="container-fluid" v-if="tickets.length>0">
+        <div  v-for="(incident, index)  in tickets" :item="incident" :key="index" class="row u-pb u-border-b " style="border-bottom-color: #dadada !important;">
+            <div class="col-12">
+                <div class="row">
+                  <div class="col-9">
+                    <!-- <h1> -->
+                      
+                      <!-- at <a class="light" href="" target="_top">zd-developers</a> -->
+                    <!-- </h1> -->
+                    <p class="info">
+                      <a @click="routeToIncident(incident.id)" href="#" class="light">{{incident.id}}</a>
+                      {{incident.subject}}                      
+                    </p>
+                  </div>
+                  <div class="col-3"><b>{{incident.status}}</b></div>
+                </div>
+            </div>          
+        </div>
+    </div>
   </div>
 
-  <!-- https://github.com/zendesk/zendesk_app_framework_sdk -->
   <script src="//assets.zendesk.com/apps/sdk/2.0/zaf_sdk.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
   <script src="//cdn.jsdelivr.net/npm/jquery"></script>
   <script src="src/main.js"></script>
 
